@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Temperature Converter</title>
+<style>
+  :root{
+    --bg: #05060a;
+    --panel: #0d1018;
+    --panel-edge: #1c2230;
+    --cyan: #2fe3ff;
+    --orange: #ff7a45;
+    --text: #e8edf5;
+    --muted: #6b7588;
+    --error: #ff5470;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    min-height:100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x:hidden;
+  }
+
+  #stars {
+    position:fixed; inset:0; z-index:0;
+  }
+  .star {
+    position:absolute; width:3px; height:3px; border-radius:50%;
+    background:#fff; opacity:.5;
+    animation: twinkle 4s ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity:.15; }
+    50% { opacity:.8; }
+  }
+
+  .wrap {
+    position:relative; z-index:1;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding: 56px 20px 80px;
+  }
+
+  .badge {
+    display:inline-flex; align-items:center; gap:8px;
+    background: rgba(255,122,69,.08);
+    border:1px solid rgba(255,122,69,.35);
+    color: var(--orange);
+    font-size:12px; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:7px 16px; border-radius:999px;
+    margin-bottom:22px;
+  }
+  .badge .dot { width:6px; height:6px; border-radius:50%; background:var(--orange); box-shadow:0 0 8px var(--orange); }
+
+  h1 {
+    font-size: clamp(34px, 6vw, 54px);
+    font-weight:800;
+    letter-spacing:.02em;
+    text-align:center;
+    background: linear-gradient(120deg, #fff 30%, var(--cyan) 70%, var(--orange) 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow: 0 0 40px rgba(47,227,255,.15);
+  }
+  .tagline {
+    color: var(--muted);
+    font-size:14px;
+    margin-top:8px;
+    margin-bottom:40px;
+    letter-spacing:.02em;
+  }
+
+  .card {
+    width:100%; max-width:460px;
+    background: linear-gradient(165deg, var(--panel), #090b11);
+    border:1px solid var(--panel-edge);
+    border-radius:22px;
+    padding:34px 30px 30px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.02) inset,
+                0 30px 60px -20px rgba(0,0,0,.7),
+                0 0 80px -40px rgba(47,227,255,.25);
+    position:relative;
+  }
+  .card::before{
+    content:"";
+    position:absolute; inset:-1px;
+    border-radius:22px;
+    padding:1px;
+    background: linear-gradient(135deg, rgba(47,227,255,.4), transparent 30%, transparent 70%, rgba(255,122,69,.4));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+  }
+
+  .card-title {
+    font-size:13px; font-weight:700; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--cyan);
+    margin-bottom:24px; text-align:center;
+  }
+
+  .unit-row {
+    display:flex; gap:8px;
+    background:#080a10;
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    padding:5px;
+    margin-bottom:20px;
+  }
+  .unit-btn {
+    flex:1;
+    padding:11px 6px;
+    border:none; border-radius:10px;
+    background:transparent;
+    color:var(--muted);
+    font-size:13px; font-weight:700;
+    cursor:pointer;
+    transition: all .25s ease;
+    letter-spacing:.02em;
+  }
+  .unit-btn.active {
+    background: linear-gradient(135deg, rgba(47,227,255,.18), rgba(47,227,255,.05));
+    color: var(--cyan);
+    box-shadow: 0 0 0 1px rgba(47,227,255,.4) inset;
+  }
+
+  .field-label {
+    font-size:11px; color:var(--muted); letter-spacing:.1em;
+    text-transform:uppercase; font-weight:700;
+    margin-bottom:8px; display:block;
+  }
+  .input-shell {
+    position:relative;
+    margin-bottom: 6px;
+  }
+  #tempInput {
+    width:100%;
+    background:#080a10;
+    border:1.5px solid var(--panel-edge);
+    color:var(--text);
+    font-size:24px; font-weight:700;
+    padding:16px 54px 16px 18px;
+    border-radius:14px;
+    outline:none;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    font-family: inherit;
+  }
+  #tempInput::placeholder { color:#3a4153; font-weight:500; }
+  #tempInput:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(47,227,255,.12);
+  }
+  #tempInput.shake {
+    border-color: var(--error);
+    animation: shake .35s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform:translateX(0); }
+    25% { transform:translateX(-6px); }
+    75% { transform:translateX(6px); }
+  }
+  .unit-suffix {
+    position:absolute; right:18px; top:50%; transform:translateY(-50%);
+    font-size:18px; font-weight:700; color:var(--muted);
+    pointer-events:none;
+  }
+  .error-msg {
+    color: var(--error);
+    font-size:12px; font-weight:600;
+    min-height:18px;
+    margin: 4px 2px 14px;
+    opacity:0; transition: opacity .2s ease;
+  }
+  .error-msg.show { opacity:1; }
+
+  .convert-btn {
+    width:100%;
+    border:none; border-radius:14px;
+    padding:16px;
+    background: linear-gradient(135deg, var(--cyan), #18b8d6);
+    color:#031018;
+    font-size:16px; font-weight:800;
+    letter-spacing:.04em;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    box-shadow: 0 10px 30px -8px rgba(47,227,255,.5);
+    transition: transform .15s ease, box-shadow .15s ease;
+    margin-top: 6px;
+  }
+  .convert-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 36px -8px rgba(47,227,255,.65); }
+  .convert-btn:active { transform: translateY(0); }
+  .convert-btn svg { width:16px; height:16px; }
+
+  .result-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    margin-top:22px;
+    max-height:0;
+    opacity:0;
+    overflow:hidden;
+    transition: max-height .35s ease, opacity .35s ease;
+  }
+  .result-grid.visible {
+    max-height:160px;
+    opacity:1;
+  }
+  .result-box {
+    background: linear-gradient(160deg, rgba(255,122,69,.09), rgba(255,122,69,.02));
+    border:1px solid rgba(255,122,69,.3);
+    border-radius:16px;
+    padding:18px 10px;
+    text-align:center;
+    transform: translateY(8px) scale(.97);
+    opacity:0;
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .result-box-alt {
+    background: linear-gradient(160deg, rgba(47,227,255,.09), rgba(47,227,255,.02));
+    border-color: rgba(47,227,255,.3);
+  }
+  .result-grid.visible .result-box {
+    opacity:1; transform: translateY(0) scale(1);
+  }
+  .result-label {
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color: var(--orange); font-weight:700; margin-bottom:10px;
+  }
+  .result-box-alt .result-label { color: var(--cyan); }
+  .result-value {
+    font-size:26px; font-weight:800; color:#fff;
+    letter-spacing:-.01em;
+    word-break: break-word;
+  }
+  @media (max-width:380px){
+    .result-value { font-size:21px; }
+  }
+
+  footer {
+    margin-top:36px;
+    color:#394257;
+    font-size:12px;
+    letter-spacing:.04em;
+    text-align:center;
+  }
+  footer span { color:var(--cyan); }
+
+  @media (max-width:480px){
+    .card{ padding:28px 20px 24px; }
+    h1 { font-size:30px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="wrap">
+  <h1>Temperature&nbsp;Converter</h1>
+  <p class="tagline">Celsius &middot; Fahrenheit &middot; Kelvin — convert instantly</p>
+
+  <div class="card">
+    <div class="card-title">Select Input Unit</div>
+
+    <div class="unit-row" id="unitRow">
+      <button class="unit-btn active" data-unit="C">°C Celsius</button>
+      <button class="unit-btn" data-unit="F">°F Fahrenheit</button>
+      <button class="unit-btn" data-unit="K">K Kelvin</button>
+    </div>
+
+    <label class="field-label" for="tempInput">Enter Temperature</label>
+    <div class="input-shell">
+      <input type="text" id="tempInput" placeholder="e.g. 36.6" inputmode="decimal" />
+      <span class="unit-suffix" id="inputSuffix">°C</span>
+    </div>
+    <div class="error-msg" id="errorMsg">Please enter a valid number.</div>
+
+    <button class="convert-btn" id="convertBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      Convert Temperature
+    </button>
+
+    <div class="result-grid" id="resultGrid">
+      <div class="result-box" id="resultBox1">
+        <div class="result-label" id="resultLabel1">--</div>
+        <div class="result-value" id="resultValue1">--</div>
+      </div>
+      <div class="result-box result-box-alt" id="resultBox2">
+        <div class="result-label" id="resultLabel2">--</div>
+        <div class="result-value" id="resultValue2">--</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const starsContainer = document.getElementById('stars');
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 4) + 's';
+    s.style.width = s.style.height = (Math.random() * 2 + 1.5) + 'px';
+    starsContainer.appendChild(s);
+  }
+
+  let currentUnit = 'C';
+  const unitNames = { C: '°C', F: '°F', K: 'K' };
+  const unitFull  = { C: 'Celsius', F: 'Fahrenheit', K: 'Kelvin' };
+
+  const unitButtons = document.querySelectorAll('.unit-btn');
+  const inputSuffix = document.getElementById('inputSuffix');
+  const tempInput = document.getElementById('tempInput');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultGrid = document.getElementById('resultGrid');
+  const resultLabel1 = document.getElementById('resultLabel1');
+  const resultValue1 = document.getElementById('resultValue1');
+  const resultLabel2 = document.getElementById('resultLabel2');
+  const resultValue2 = document.getElementById('resultValue2');
+
+  unitButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      unitButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentUnit = btn.dataset.unit;
+      inputSuffix.textContent = unitNames[currentUnit];
+      hideError();
+      resultGrid.classList.remove('visible');
+    });
+  });
+
+  function convertTemperature(value, fromUnit) {
+    let celsius;
+    switch (fromUnit) {
+      case 'C': celsius = value; break;
+      case 'F': celsius = (value - 32) * 5 / 9; break;
+      case 'K': celsius = value - 273.15; break;
+    }
+    return {
+      C: celsius,
+      F: celsius * 9 / 5 + 32,
+      K: celsius + 273.15
+    };
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('show');
+    tempInput.classList.add('shake');
+    setTimeout(() => tempInput.classList.remove('shake'), 350);
+  }
+  function hideError() {
+    errorMsg.classList.remove('show');
+  }
+
+  document.getElementById('convertBtn').addEventListener('click', () => {
+    const raw = tempInput.value.trim();
+
+    if (raw === '') {
+      showError('Please enter a temperature value.');
+      resultGrid.classList.remove('visible');
+      return;
+    }
+    const value = parseFloat(raw);
+    if (isNaN(value) || !/^-?\d*\.?\d+$/.test(raw)) {
+      showError('Please enter a valid number.');
+      resultGrid.classList.remove('visible');
+      return;
+    }
+    if (currentUnit === 'K' && value < 0) {
+      showError('Kelvin cannot be negative (absolute zero = 0K).');
+      resultGrid.classList.remove('visible');
+      return;
+    }
+
+    hideError();
+    const result = convertTemperature(value, currentUnit);
+
+    const others = ['C', 'F', 'K'].filter(u => u !== currentUnit);
+
+    resultLabel1.textContent = unitFull[others[0]];
+    resultValue1.textContent = `${result[others[0]].toFixed(2)} ${unitNames[others[0]]}`;
+
+    resultLabel2.textContent = unitFull[others[1]];
+    resultValue2.textContent = `${result[others[1]].toFixed(2)} ${unitNames[others[1]]}`;
+
+    resultGrid.classList.add('visible');
+  });
+
+  tempInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('convertBtn').click();
+    }
+  });
+
+  tempInput.addEventListener('input', hideError);
+</script>
+
+</body>
+</html>
